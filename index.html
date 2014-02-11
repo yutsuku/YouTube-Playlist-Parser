@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>yt playlist parser</title>
+<style type="text/css">
+html, body { background: #f1f1f1; }
+.img { overflow: hidden; margin: 5px 0; } img { margin-top: -46px; margin-bottom: -48px; } #msg { float: left; } .link { margin: 15px; padding: 15px; border-radius: 3px; box-shadow: 0 2px 5px #C2BFC0, inset 0px 0px 2px 1px #fff;}
+#msg { float: left; }
+#raw { float: left; margin: 15px; width: 50%; }
+#raw textarea { background: #F1F1F1;border: 0px;border-radius: 3px;box-shadow: 0px 2px 5px #C2BFC0, inset 0px 0px 1px 1px #FFFFFF;height: 500px;padding: 15px;width: 50%; }
+#control { margin: 15px; }
+#control input[type="text"] { background: #E1E1E1;border: 0px none currentColor;border-radius: 3px;box-shadow: inset 0px -1px 3px #C2BFC0, 0px 1px 1px #FFFFFF;height: 25px;padding: 0px 5px;width: 300px;}
+#control input[type="submit"] { background: #F1F1F1;border: 0px none currentColor;border-radius: 3px;box-shadow: 0px 2px 5px #C2BFC0, inset 0px 0px 2px 1px #FFFFFF;height: 25px;padding: 5px;}
+</style>
+<script type="text/javascript" src="jquery.min.js"></script>
+<script type="text/javascript">
+jQuery(document).ready(function(){
+	$("#msg").text("Ready");
+	var playlistURL = "https://gdata.youtube.com/feeds/api/playlists/{PLAYLISTID}?v=2&prettyprint=true&alt=jsonc";
+	var watchPre = "http://www.youtube.com/watch?v=";
+
+	var myLinks = new Array();
+	var totalResults=25;
+	var currentPage=1;
+	var Step=25;
+	var vaildLink=0;
+	var playlistID;
+		
+	function reset() {
+		playlistURL = "https://gdata.youtube.com/feeds/api/playlists/{PLAYLISTID}?v=2&prettyprint=true&alt=jsonc";
+		watchPre = "http://www.youtube.com/watch?v=";
+		
+		myLinks = new Array();
+		totalResults=25;
+		currentPage=1;
+		Step=25;
+		vaildLink=0;
+		playlistID;
+		$("#msg").html("");
+		$("#raw").html("");
+	}
+	
+	function parseLink(link) {
+		if ( link.indexOf("http") == -1 || link.indexOf("www.youtube.com") == -1 ) {
+			console.log("invalid format");
+			return false;
+		}
+		link = link.replace("?","&").replace(/ /g,"");
+		link = link.split("&");
+		var parms = new Array();
+		for(i=0;i<link.length;+i++) {
+			parms.push(link[i].split("="));
+		}
+		for(i=0;i<parms.length;i++) {
+			if ( parms[i][0] == "list" ) {
+				playlistID = parms[i][1];
+				playlistURL = playlistURL.replace("{PLAYLISTID}", playlistID);
+				vaildLink=1;
+				break;
+			}
+		}
+		if ( vaildLink == 1 ) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	function getData(URL) {
+		jQuery.ajax({
+			type: 'GET',
+			url: URL,
+			async: true,
+			success: function(data) {
+				processData(data);
+			},
+			error: function(event, jqxhr, settings, exception) {
+				if ( event.responseText != undefined ) {
+					processData(JSON.parse(event.responseText));
+				} else {
+					$("#msg").html("Error #" + event.status);
+				}
+			}
+		});
+	}
+	function processData(object) {
+		console.log(object);
+		if ( object.error != undefined ) {
+			$("#msg").html("Error [ " + object.error.code + " ]: " + object.error.message);
+		} else {
+			pushData(object);
+		}
+	}
+	function pushData(object) {
+		var startIndex = object.data.startIndex;
+		var maxResults = object.data.itemsPerPage;
+		var Results = object.data.totalItems;
+		var items = object.data.items;
+		
+		console.log("startIndex: " + startIndex);
+		console.log("maxResults: " + maxResults);
+		console.log("Results: " + Results);
+		console.log("items:");
+		console.log(object);
+		
+		totalResults = Results;
+		currentPage = currentPage+maxResults;
+		Step = maxResults;
+		for(i=0;i<items.length;i++) {
+		
+			var videoID = object.data.items[i].video.id;
+			var videoTitle = object.data.items[i].video.title;
+			var videoThumb = (object.data.items[i].video.thumbnail != undefined ? object.data.items[i].video.thumbnail.hqDefault : '');
+			
+			myLinks.push({videoID:videoID,title:videoTitle,thumb:videoThumb});
+		}
+		getMoreData();
+	}
+	function getMoreData() {
+		if (currentPage<totalResults) {
+			$("#msg").html("Loading ... " + Math.floor((currentPage/totalResults)*100) + "%");
+			console.log("Getting more pages: " + "&start-index=" + currentPage + "&max-results=" + Step);
+			getData(playlistURL + "&start-index=" + currentPage + "&max-results=" + Step);
+		} else { 
+			displayLinks(myLinks);
+			return false;
+		}
+	}
+	function displayLinks(array) {
+		var out="";
+		var raw="";
+		for(i=0;i<array.length;i++) {
+			raw = raw + watchPre + array[i].videoID + "\n";
+			out = out + "<div class=\"link\"><span class=\"title\">" + array[i].title + "</span><div class=\"img\"><img src=\"" + array[i].thumb + "\" alt=\"\" /></div><a href=\"" + watchPre + array[i].videoID + "\">" + watchPre + array[i].videoID + "</a></div>";
+		}
+		$("#msg").hide().html(out).fadeIn();
+		$("#raw").hide().html("<textarea>" + raw + "</textarea>").fadeIn();
+	}
+	
+	try {
+		$("input#send").click(function() {
+			reset();
+			if ( parseLink(document.getElementById("input").value) == true) {
+				$("#msg").html("Loading ...");
+				getData(playlistURL);
+			}
+		});
+	}
+	catch (e) {
+		console.log("ERRORZ!");
+		console.log(e);
+	}
+});
+</script>
+</head>
+<body>
+<div id="control">
+  <input id="input" type="text">
+  <input id="send" type="submit">
+</div>
+<div id="msg"></div>
+<div id="raw"></div>
+</body>
+</html>
