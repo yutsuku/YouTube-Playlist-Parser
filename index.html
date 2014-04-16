@@ -17,6 +17,7 @@ html, body { background: #f1f1f1; }
 jQuery(document).ready(function(){
 	$("#msg").text("Ready");
 	var API_KEY = "AIzaSyBJz2ryk9hbX_c7_1lZwR_dNYi9IregHQg";
+	var PAGE_TOKEN = false;
 	var Step=50;
 	var playlistURL = "https://www.googleapis.com/youtube/v3/playlistItems?part=id%2Csnippet&maxResults=" + Step + "&playlistId={PLAYLISTID}&key=" + API_KEY;
 	var watchPre = "http://www.youtube.com/watch?v=";
@@ -28,6 +29,8 @@ jQuery(document).ready(function(){
 	var playlistID;
 		
 	function reset() {
+		var PAGE_TOKEN = false;
+		var API_KEY = "AIzaSyBJz2ryk9hbX_c7_1lZwR_dNYi9IregHQg";
 		Step=50;
 		playlistURL = "https://www.googleapis.com/youtube/v3/playlistItems?part=id%2Csnippet&maxResults=" + Step + "&playlistId={PLAYLISTID}&key=" + API_KEY;
 		watchPre = "http://www.youtube.com/watch?v=";
@@ -97,7 +100,11 @@ jQuery(document).ready(function(){
 		var maxResults = object.pageInfo.resultsPerPage;
 		var Results = object.pageInfo.totalResults;
 		var items = object.items;
-		
+		if ( object.nextPageToken != undefined ) {
+			PAGE_TOKEN = object.nextPageToken;
+		} else {
+			PAGE_TOKEN = false;
+		}
 		//console.log("startIndex: " + startIndex);
 		console.log("maxResults: " + maxResults);
 		console.log("Results: " + Results);
@@ -121,7 +128,7 @@ jQuery(document).ready(function(){
 		if (currentPage<totalResults) {
 			$("#msg").html("Loading ... " + Math.floor((currentPage/totalResults)*100) + "%");
 			console.log("Getting more pages: " + "&start-index=" + currentPage + "&max-results=" + Step);
-			getData(playlistURL + "&start-index=" + currentPage + "&max-results=" + Step);
+			getData(playlistURL + "&pageToken=" + PAGE_TOKEN + "&max-results=" + Step);
 		} else { 
 			displayLinks(myLinks);
 			return false;
