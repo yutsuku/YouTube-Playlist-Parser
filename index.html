@@ -16,24 +16,25 @@ html, body { background: #f1f1f1; }
 <script type="text/javascript">
 jQuery(document).ready(function(){
 	$("#msg").text("Ready");
-	var playlistURL = "https://gdata.youtube.com/feeds/api/playlists/{PLAYLISTID}?v=2&prettyprint=true&alt=jsonc";
+	var API_KEY = "AIzaSyBJz2ryk9hbX_c7_1lZwR_dNYi9IregHQg";
+	var Step=50;
+	var playlistURL = "https://www.googleapis.com/youtube/v3/playlistItems?part=id%2Csnippet&maxResults=" + Step + "&playlistId={PLAYLISTID}&key=" + API_KEY;
 	var watchPre = "http://www.youtube.com/watch?v=";
 
 	var myLinks = new Array();
 	var totalResults=25;
 	var currentPage=1;
-	var Step=25;
 	var vaildLink=0;
 	var playlistID;
 		
 	function reset() {
-		playlistURL = "https://gdata.youtube.com/feeds/api/playlists/{PLAYLISTID}?v=2&prettyprint=true&alt=jsonc";
+		Step=50;
+		playlistURL = "https://www.googleapis.com/youtube/v3/playlistItems?part=id%2Csnippet&maxResults=" + Step + "&playlistId={PLAYLISTID}&key=" + API_KEY;
 		watchPre = "http://www.youtube.com/watch?v=";
 		
 		myLinks = new Array();
 		totalResults=25;
 		currentPage=1;
-		Step=25;
 		vaildLink=0;
 		playlistID;
 		$("#msg").html("");
@@ -66,6 +67,7 @@ jQuery(document).ready(function(){
 		}
 	}
 	function getData(URL) {
+		console.log(URL)
 		jQuery.ajax({
 			type: 'GET',
 			url: URL,
@@ -91,12 +93,12 @@ jQuery(document).ready(function(){
 		}
 	}
 	function pushData(object) {
-		var startIndex = object.data.startIndex;
-		var maxResults = object.data.itemsPerPage;
-		var Results = object.data.totalItems;
-		var items = object.data.items;
+		//var startIndex = object.data.startIndex;
+		var maxResults = object.pageInfo.resultsPerPage;
+		var Results = object.pageInfo.totalResults;
+		var items = object.items;
 		
-		console.log("startIndex: " + startIndex);
+		//console.log("startIndex: " + startIndex);
 		console.log("maxResults: " + maxResults);
 		console.log("Results: " + Results);
 		console.log("items:");
@@ -107,9 +109,9 @@ jQuery(document).ready(function(){
 		Step = maxResults;
 		for(i=0;i<items.length;i++) {
 		
-			var videoID = object.data.items[i].video.id;
-			var videoTitle = object.data.items[i].video.title;
-			var videoThumb = (object.data.items[i].video.thumbnail != undefined ? object.data.items[i].video.thumbnail.hqDefault : '');
+			var videoID = object.items[i].snippet.resourceId.videoId;
+			var videoTitle = object.items[i].snippet.title;
+			var videoThumb = (object.items[i].snippet.thumbnails != undefined ? object.items[i].snippet.thumbnails.high.url : '');
 			
 			myLinks.push({videoID:videoID,title:videoTitle,thumb:videoThumb});
 		}
